@@ -58,6 +58,9 @@ jobs:
     - name: Load Docker image into Kind
       run: kind load docker-image backend-app:latest
 
+    - name: Create Namespace
+      run: kubectl create namespace ead-ca2 || true
+
     # =========================
     # DEPLOY TO K8S
     # =========================
