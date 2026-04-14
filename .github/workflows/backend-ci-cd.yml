@@ -41,7 +41,7 @@ jobs:
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/backend-app:latest
 
-    # 🔥 NEW (Kubernetes)
+    # 🔥 NEW (Kubernetes-configurations)
     - name: Set up Kubeconfig
       run: |
         mkdir -p $HOME/.kube
