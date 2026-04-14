@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
       - name: backend
-        image: backend-app:latest
-        imagePullPolicy: Never
+        image: YOUR_DOCKERHUB_USERNAME/backend-app:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
 

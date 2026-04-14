@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: frontend-app:latest
-        imagePullPolicy: Never
+        image: YOUR_DOCKERHUB_USERNAME/frontend-app:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 22137
 
