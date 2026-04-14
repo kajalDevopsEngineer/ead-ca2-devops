@@ -1,52 +1,99 @@
-name: Frontend CI/CD Pipeline
+name: Frontend CI/CD Pipeline with K8s
 
 on:
   push:
-    paths:
-      - 'FE/**'
-      - 'k8s/**'
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    # =========================
+    # CHECKOUT CODE
+    # =========================
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
+    # =========================
+    # SET UP NODE (Frontend)
+    # =========================
+    - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: 18
 
+    # =========================
+    # INSTALL DEPENDENCIES
+    # =========================
     - name: Install dependencies
       run: |
         cd FE
         npm install
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+    # =========================
+    # BUILD FRONTEND (if needed)
+    # =========================
+    - name: Build frontend
+      run: |
+        cd FE
+        npm run build || echo "No build step required"
 
+    # =========================
+    # BUILD DOCKER IMAGE
+    # =========================
     - name: Build Docker Image
       run: |
         cd FE
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend-app:latest .
+        docker build -t frontend-app:latest .
 
-    - name: Push Docker Image
+    # =========================
+    # INSTALL KIND
+    # =========================
+    - name: Install Kind
       run: |
-        docker push ${{ secrets.DOCKER_USERNAME }}/frontend-app:latest
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+        chmod +x ./kind
+        sudo mv ./kind /usr/local/bin/kind
 
-    # 🔥 Kubernetes deploy
-    - name: Set up Kubeconfig
+    # =========================
+    # INSTALL KUBECTL
+    # =========================
+    - name: Install kubectl
       run: |
-        mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
 
-    - name: Deploy Frontend
-      run: |
-        kubectl apply -f k8s/frontend-deployment.yaml
-        kubectl apply -f k8s/frontend-service.yaml
+    # =========================
+    # CREATE KIND CLUSTER
+    # =========================
+    - name: Create Kubernetes Cluster
+      run: kind create cluster
+
+    # =========================
+    # LOAD IMAGE INTO CLUSTER
+    # =========================
+    - name: Load Docker image into Kind
+      run: kind load docker-image frontend-app:latest
+
+    # =========================
+    # CREATE NAMESPACE
+    # =========================
+    - name: Create Namespace
+      run: kubectl create namespace ead-ca2 || true
+
+    # =========================
+    # DEPLOY TO K8S
+    # =========================
+    - name: Deploy manifests
+      run: kubectl apply -f k8s/
+
+    # =========================
+    # VERIFY DEPLOYMENT
+    # =========================
+    - name: Check pods
+      run: kubectl get pods -n ead-ca2
+
+    - name: Check services
+      run: kubectl get svc -n ead-ca2
